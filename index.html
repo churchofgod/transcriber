@@ -14,8 +14,11 @@
 	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 	<script src="//cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
 	<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+	<script src="https://cdn.jsdelivr.net/g/filesaver.js"></script>
 	<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jquery.hotkeys@0.1.0/jquery.hotkeys.min.js"></script>    
+    <script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/editorjs@latest"></script>
 	<script src="https://global.localizecdn.com/localize.js"></script>
 	<script>!function(a){if(!a.Localize){a.Localize={};for(var e=["translate","untranslate","phrase","initialize","translatePage","setLanguage","getLanguage","detectLanguage","getAvailableLanguages","untranslatePage","bootstrap","prefetch","on","off","hideWidget","showWidget"],t=0;t<e.length;t++)a.Localize[e[t]]=function(){}}}(window);</script>
 	<script>
@@ -26,41 +29,103 @@
 	</script>
 </head>
 <body>
-	<div id="nav"></div>
-	<div class="container" style="margin-top:4em;">
-		<h1>Transcription</h1>
-		<div id="video" title="Video Source" >
+	</div>
+	<div class="container" style="margin-top:2em;">
+			<nav class="d-flex justify-content-end">
+			<button type="button" class="btn btn-secondary" data-toggle="modal" data-target="#exampleModal" >
+				<i class="material-icons" style="font-size: 1em;" data-toggle="tooltip" data-placement="left" title="Translation Information">info</i>
+			</button>
+
+			<!-- Modal -->
+			<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+			  <div class="modal-dialog" role="document">
+			    <div class="modal-content">
+			      <div class="modal-header">
+			        <h5 class="modal-title" id="exampleModalLabel">Transcription Information</h5>
+			        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+			          <span aria-hidden="true">&times;</span>
+			        </button>
+			      </div>
+			      <div class="modal-body">
+			        <div class="form-group">
+			        	<label for="">Video Link</label>
+			        	<input type="text" id="url" class="form-control">
+			        </div>
+			        <div class="form-group">
+			        	<label for="">Speaker</label>
+			        	<input type="text" id="speaker" class="form-control">
+			        </div>
+			        <div class="form-group">
+			        	<label for="">Language</label>
+						<select class="form-control" id="language">
+							<option value="zh-Hant" data-polly="">繁體</option>
+							<option value="zh-Hans" data-polly="Zhiyu">简体</option>
+							<option value="en" data-polly="Matthew">English</option>
+							<option value="ja" data-polly="Mizuki">日本語</option>
+							<option value="ko" data-polly="Seoyeon">한국어</option>
+							<option value="es" data-polly="Lupe">ESPAÑOL</option>
+							<option value="pt" data-polly="Camila">Portugués</option>
+							<option value="hi" data-polly="Aditi">Hindi(हिंदी)</option>
+						</select>	
+			        </div>
+			      </div>
+			      <div class="modal-footer">
+			        <button type="button" class="btn btn-primary" id="btn_transcription_info" data-dismiss="modal">Save changes</button>
+			      </div>
+			    </div>
+			  </div>
+			</div>
+		    <button style="margin-left: 1em; display: none !important;" class="btn btn-secondary d-flex align-items-center" type="button" data-toggle="tooltip" data-placement="left" title="Text-to-speech (.mp3)" id="btn-tts">
+				<i class="material-icons record_voice_over" style="font-size: 1em;">record_voice_over</i>
+				<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display: none;" id="btn-tts-loading"></span>
+		    </button>
+			<a href="https://translate.google.com/" target="_blank" style="margin-left: 1em;" class="btn btn-secondary d-flex align-items-center" data-toggle="tooltip" data-placement="left" title="Google Translate">
+				<i class="material-icons" style="font-size: 1em;">translate</i>
+			</a>
+			<label style="margin: 0; margin-left: 1em;" class="btn btn-secondary d-flex align-items-center" for="upload_input" data-toggle="tooltip" data-placement="left" title="Upload Source File (.json)">
+				<input id="upload_input" accept="application/json" type="file" style="display: none;">
+					<i class="material-icons" style="font-size: 1em;">cloud_upload</i>
+				</button>				
+			</label>
+			<button id="btn-timestamp" style="margin-left: 1em;" class="btn btn-secondary d-flex align-items-center" data-toggle="tooltip" data-placement="left" title="Generate Timestamp">
+				<i class="material-icons" style="font-size: 1em;">watch_later</i>
+			</button>
+<!-- 			<button style="margin-left: 1em;" class="btn btn-secondary d-flex align-items-center">
+				<i class="material-icons" style="font-size: 1em;">share</i>
+			</button> -->
+ 			<div class="dropdown btn-group">
+			    <button style="margin-left: 1em;" class="btn btn-primary d-flex align-items-center dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+					<i class="material-icons" style="font-size: 1em;">cloud_download</i>
+			    </button>
+			    <div class="dropdown-menu">
+					<a class="dropdown-item" id="btn-vtt">As Subtitle (.vtt)</a>
+					<a class="dropdown-item" id="btn-txt">As Text (.txt)</a>
+					<a class="dropdown-item" id="btn-json">As Source File (.json)</a>
+					<div role="separator" class="dropdown-divider"></div>
+					<a class="dropdown-item" id="webvtt_validator" href="https://quuz.org/webvtt/">WebVTT Validator</a>
+			    </div>
+		    </div>
+		</nav>	
+	</div>
+	<hr>
+	<div class="container col-lg-4 col-md-6 col-sm-10" >
+		<br>
+		<textarea class="form-control-plaintext" style="outline: none; font-size: 2em; font-weight: bold;" placeholder="Title..." id="title"></textarea>
+		<br>
+		<div id="editor"></div>
+		<div id="video" title="Generate Timestamp">
             <span id="video_display_text"></span>		
 			<div class="input-group">
 			  <div class="input-group-prepend">
 			    <span class="input-group-text"><i class="material-icons">watch_later</i></span>
-			    <span id="clockUI" class="input-group-text">00:00</span>
 			  </div>
-			  <input type="text" class="form-control" id="translation_input" aria-label="Text input with segmented dropdown button">
+			  <input type="text" class="form-control" readonly id="vtt_text"/>
 			  <div class="input-group-append">
-			    <button type="button" data-lang="ZH" id="currentTranslation_submit" class="btn btn-primary">Submit<span id="current_lang_button">(ZH)</span></button>
-			    <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-			      <span class="sr-only">Toggle Dropdown</span>
-			    </button>
-			    <div class="dropdown-menu" >
-			      <a class="dropdown-item data_lang_select_btn" id="data_lang_zh" data-lang="ZH">Chinese</a>
-			      <a class="dropdown-item data_lang_select_btn" id="data_lang_en" data-lang="EN">English</a>
-			    </div>
+			    <button type="button"id="currentTimestamp_submit" class="btn btn-primary" data-clipboard-text="">Copy</button>
 			  </div>
 			</div>
             <video id="transcription_video_player" controls style="width: 100%;"></video>
 		</div>
-		<table id="transcription" class="table table-striped thead-dark col-md-12">
-			<thead class="">
-				<tr>
-					<td>Start Time</td>
-					<td>End Time</td>
-					<td>Text</td>
-					<td>Language</td>
-				</tr>
-			</thead>
-			<tbody class=""></tbody>
-		</table>
 	</div>
 </body>
 <style>
@@ -70,10 +135,19 @@
 	.no-close .ui-dialog-titlebar-close {
 	  display: none;
 	}
+	.ce-block__content, .ce-toolbar__content{
+		max-width: initial !important;
+	}
+	.ui-dialog{
+		display: none;
+		position: fixed !important;
+	}
 </style>
 <script>
+	const lambda_url = "https://o5t8akns7c.execute-api.us-east-1.amazonaws.com/dev"
+	// const lambda_url = "http://localhost:3000"
 	const urlParams = new URLSearchParams(window.location.search);
-	const url = urlParams.get('url');	
+	  let url = urlParams.get('url');	
 	let store = {}
 		store.data = []
 		store._meta = {}
@@ -121,58 +195,278 @@
 	        .filter((v,i) => v !== "00" || i > 0)
 	        .join(":")
 	}
+	var toHHMMSSms = (secs) => {
+	    var sec_num = parseInt(secs, 10)
+	    var hours   = Math.floor(sec_num / 3600)
+	    	hours = hours < 10 ? "0" + hours : hours
+	    var minutes = Math.floor(sec_num / 60) % 60
+	    	minutes = minutes < 10 ? "0" + minutes : minutes
+	    var seconds = sec_num % 60
+	    	seconds = seconds < 10 ? "0" + seconds : seconds
+	    var ms = (secs % 1).toFixed(3)*1000
+	    	ms = ms <= 9 ? "00" + ms : ms
+	    	ms = ms >= 10 & ms <= 100 ? "0" + ms : ms
+	    if (hours == 0 &&minutes == 0 & seconds ==0 && ms == 0) {
+	    	return "00:00:00.000"
+	    }
+	    return [hours,minutes,seconds].join(":") + "." + ms
+	}	
+	var isvttStamp = function(text){
+		return text.split(':').length === 5 && text.split('-').length === 3 && text.split('>').length === 2
+	}
+	var readFile = function(file, onLoadCallback){
+	    var reader = new FileReader();
+	    reader.onload = onLoadCallback;
+	    reader.readAsText(file);
+	}
+	var openInNewTab = function(href) {
+	  Object.assign(document.createElement('a'), {
+	    target: '_blank',
+	    href,
+	  }).click();
+	}	
+	var isMp4ByURL = function(url) {
+		if (!_.isEmpty(url)) {
+		    var filename = url.split('/').pop().split('#')[0].split('?')[0];
+		    if(filename) {
+		        var ext = filename.split('.').pop();
+		        return ext.toLowerCase() === "mp4"
+		    }else{
+				return false;
+		    }
+		}else{
+			return false;
+		}
+	}
+	var btn_loading = function(domID){
+		if (!$(domID).is(':disabled')) {
+			$(domID).attr('disabled', true)
+			$('.record_voice_over').hide()
+			$('#btn-tts-loading').show()
+		}else{
+			$(domID).attr('disabled', false)
+			$('.record_voice_over').show()
+			$('#btn-tts-loading').hide()
+		}
+	}
 	$(document).ready(function($){
+		if (!_.isEmpty(store._meta.url)) {
+			initVideoPlayer()
+		}
+		$('[data-toggle="tooltip"]').tooltip();
    		$( "#video" ).dialog({
+   		    autoOpen: false,
   			dialogClass: "no-close",
-   			width: 600, height: 450});
+   			width: 400, height: 300
+   		});
+
 		let currentTranslation = {}
 		let videoClock = 0
-    	let template = {}
-    		template.transcription_table_render = function(translations){
-    			$('#transcription tbody').html()
-	        	$('#transcription tbody').html(_.map(translations, function(e){
-    				return `
-					<tr id="${e.id}">
-						<td>${toHHMMSS(e.start_time)}</td>
-						<td>${toHHMMSS(e.end_time)}</td>
-						<td>${e.text}</td>
-						<td>${e.lang}</td>
-					</tr>
-		    	`
-    			}).join(''))			
-    		}
+		let editorInstances = {}
+		let editor_id = makeid(5)
+		let vtt_text = ""
+		let tts_btn_state = false
 		//control
-		$('.data_lang_select_btn').on('click', function(e){
-			$('#currentTranslation_submit').attr('data-lang', $(this).attr('data-lang'))
-			$('#current_lang_button').text(`(${$(this).attr('data-lang')})`)
-		})
-		$('#currentTranslation_submit').on('click', function(e){
-			currentTranslation.id = makeid(5)
-			currentTranslation.lang = $(this).attr('data-lang')
- 			store.data = [...store.data, currentTranslation]
- 			console.log(store)
-     		template.transcription_table_render(store.data)
+
+		$('#currentTimestamp_submit').on('click', function(e){
+ 			// store.data = [...store.data, currentTranslation]
+ 			$(this).attr('data-clipboard-text', vtt_text)
 			currentTranslation = {}
-			currentTranslation.start_time = videoClock
 			currentTranslation.end_time = videoClock
-			$('#translation_input').val('')
+ 			currentTranslation.start_time = videoClock
 		})
-		$('#translation_input').on('keyup', function(e){
-			e.preventDefault()
-			currentTranslation.text = e.target.value
+		var clipboard = new ClipboardJS('#currentTimestamp_submit');
+			clipboard.on('success', function(e) {
+			    e.clearSelection();
+			});
+
+		$('#btn-timestamp').on('click', function(e){
+			$('.ui-dialog').toggle()
+		})
+		$('#btn-json').on('click', function(e){
+			var blob = new Blob([JSON.stringify(store)], {type: "application/json"});
+			var saveAs = window.saveAs;
+			saveAs(blob, `${store._meta.title}.json`);
+		})
+		$('#btn-txt').on('click', function(e){
+			let txt = _.map(store.data.blocks, function(block){
+			  if(!isvttStamp(_.unescape(block.data.text))){
+			    return block.data.text
+			  }
+			}).filter(Boolean).join('\n')
+			var blob = new Blob([txt], {type: "text/plain;charset=utf-8"});
+			var saveAs = window.saveAs;
+			saveAs(blob, `${store._meta.title}.txt`);
+		})
+		$('#btn-vtt').on('click', function(e){
+			let vtt = _.map(store.data.blocks, function(block){
+			  if(isvttStamp(_.unescape(block.data.text))){
+			    return _.unescape(block.data.text) + '\n'
+			  }else{
+			  	return block.data.text + '\n\n'
+			  }
+			}).filter(Boolean).join('')
+			let title = `WEBVTT - ${store._meta.title}\n\n`
+			let end = `NOTE url=${store._meta.url};language=${store._meta.language};speaker=${store._meta.speaker};polly-voiceid=${store._meta.polly_voiceid}`
+			var blob = new Blob([title+vtt+end], {type: "text/vtt;charset=utf-8"});
+			var saveAs = window.saveAs;
+			saveAs(blob, `${store._meta.title}.vtt`);
+		})
+		$('#btn_transcription_info').on('click', function(e){
+			if(!_.isEmpty(store._meta.url) && isMp4ByURL(store._meta.url)){
+				initVideoPlayer()
+			}
+		})
+		$('#btn-tts').on('click', function(e){
+			if (_.isEmpty(store.data)) {
+				alert('Please create some content first before using text to speech function.')
+			}else{
+				if (!$(this).is(':disabled')) {
+					btn_loading('#btn-tts')
+					let polly_endpoint = `${lambda_url}/polly`
+					let concatAudio_endpoint = `${lambda_url}/concataudio`
+					let {language, polly_voiceid, title} = store._meta
+					let Polly = {"OutputFormat":"mp3", "VoiceId": polly_voiceid}
+					let session_id = makeid(5)
+					let S3 = {"Bucket": "tcoghk-tts","ContentType": "binary/octet-stream", "ACL": "public-read", "Region": ""}
+					let pollyPromises = _.map(store.data.blocks, function(block, index){
+						if (!isvttStamp(_.unescape(block.data.text))) {
+							let params = {
+								polly: Object.assign(Polly,{"Text": _.unescape(block.data.text)}),
+								s3: Object.assign(S3, {"Key": `${session_id}--${index}.mp3`})
+							}
+							return $.ajax({
+							    url: polly_endpoint,
+							    method: "POST",
+							    crossDomain: true,
+					            dataType : "json",
+					            contentType: "application/json",
+							    data: JSON.stringify(params)
+							})
+						}
+					}).filter(Boolean)
+					Promise.all(pollyPromises)
+						.then(function(success){
+							let urls = _.map(success, function(data){
+								return data.details.Location
+							})
+							$.ajax({
+							    url: concatAudio_endpoint,
+							    method: "POST",
+							    crossDomain: true,
+							    dataType : "json",
+					            contentType: "application/json",
+							    data: JSON.stringify({urls, s3: Object.assign(S3, {"Key": `${store._meta.title}--${store._meta.language}.mp3`})})
+							})
+							.then(function(success){
+								btn_loading('#btn-tts')
+								openInNewTab(success.Location)
+							})
+							.catch(function(error){
+								btn_loading('#btn-tts')
+								console.log(error)
+								alert('Concat Failed')
+							})
+						})
+						.catch(function(error){
+							btn_loading('#btn-tts')
+							console.log(error)
+							alert('Polly Failed')
+						})
+				}
+			}
+		})
+
+		$('#title').on('keyup', function(e){
+			store._meta.title = e.target.value
+		})
+		$('#speaker').on('keyup', function(e){
+			store._meta.speaker = e.target.value
+		})
+		$('#url').on('keyup', function(e){
+			urlParams.set('url', e.target.value)
+			store._meta.url = e.target.value
+		})
+		$('#language').on('change', function(e){
+			store._meta.language = $(this).val()
+			store._meta.polly_voiceid = $(this).find(':selected').attr('data-polly')
+			if (store._meta.polly_voiceid === "") {
+				$('#btn-tts').removeClass('d-flex')
+				$('#btn-tts').hide()
+			}else{
+				$('#btn-tts').addClass('d-flex')
+				$('#btn-tts').show()
+			}
+		})
+
+		$('#upload_input').on('change', function(e){
+	        readFile(this.files[0], function(e) {
+	            store = JSON.parse(e.target.result)
+				initVideoPlayer()
+	            $('#transcription_video_player').html(`
+	            	<source src="${store._meta.url}" type="video/mp4">
+	            	<track label="Chinese" kind="subtitles" srclang="zh" src="https://tcoghk-vtt.s3-us-west-2.amazonaws.com/20200103%E5%A4%A7%E5%9C%98%E8%81%9A.%E7%BA%8C%EF%BC%881%EF%BC%89%E4%B8%BB%E5%9C%A8%E6%88%91%E5%80%91%E5%BF%83%E4%B8%AD%E5%8B%95%E5%B7%A5%EF%BC%8C%E6%98%AF%E7%A5%82%E6%9C%80%E8%A6%81%E5%8B%95%E7%9A%84%E5%A4%A7%E5%B7%A5+%E4%BD%99%E5%85%89%E6%98%AD+%EF%BC%88%E5%BF%83%E9%9D%88%E5%BE%A9%E8%88%88%E8%BF%BD%E6%B1%82%E8%81%9A%E6%9C%83%EF%BC%89+(3).vtt" default>
+	            `)
+	            $("#transcription_video_player")[0].load()
+	            $('#title').val(store._meta.title)
+				$('#url').val(store._meta.url)
+	         	urlParams.set('url', store._meta.url)
+
+			store._meta.url = e.target.value
+		        editorInstances[editor_id].destroy();
+		        editor_id = makeid(5)
+		        editorInstances[editor_id] = new EditorJS({
+					holderId: 'editor',
+					autofocus: true,
+					data: store.data,
+					onReady: () => {
+					      console.log('Editor.js is ready to work!')
+					   },
+					onChange: (e) => {
+					    editorInstances[editor_id].save().then((outputData) => {
+						  console.log('Article data: ', outputData)
+						  store.data = outputData
+						}).catch((error) => {
+						  console.log('Saving failed: ', error)
+						});
+					}
+				});
+	        });
 		})
 		//video 
-		$('#transcription_video_player').append(`<source src="${url}" type="video/mp4">`)
-		let videoElement = document.getElementById('transcription_video_player')
-		let updateClockUI = function(e){$("#clockUI").text(toHHMMSS(e))}
-		let onLoadCallback = function(e){currentTranslation.start_time = 0; currentTranslation.end_time = 0}
-		let onplayingCallbacks = [
-			{callback: function(e){currentTranslation.end_time = e}, ms: 25},
-			{callback: function(e){videoClock = e}, ms: 25},
-			{callback: updateClockUI, ms:1000}
-		]
-		let onseekingCallback = function(e){currentTranslation.start_time = e}
-    	videoLib(videoElement, onLoadCallback, onplayingCallbacks, onseekingCallback)
+		initVideoPlayer = function(){
+			$('#transcription_video_player').html(`<source src="${store._meta.url}" type="video/mp4">`)
+			let videoElement = document.getElementById('transcription_video_player')
+			let updateClockUI = function(e){
+				vtt_text = `${toHHMMSSms(currentTranslation.start_time)} --> ${toHHMMSSms(currentTranslation.end_time)}`
+				$("#vtt_text").val(vtt_text)
+			}
+			let onLoadCallback = function(e){currentTranslation.start_time = 0; currentTranslation.end_time = 0}
+			let onplayingCallbacks = [
+				{callback: function(e){currentTranslation.end_time = e}, ms: 25},
+				{callback: function(e){videoClock = e}, ms: 25},
+				{callback: updateClockUI, ms:25}
+			]
+			let onseekingCallback = function(e){currentTranslation.start_time = e}
+	    	videoLib(videoElement, onLoadCallback, onplayingCallbacks, onseekingCallback)
+		}
+
+		editorInstances[editor_id] = new EditorJS({
+			holderId: 'editor',
+			autofocus: true,
+			onReady: () => {
+			      console.log('Editor.js is ready to work!')
+			   },
+			onChange: (e) => {
+			    editorInstances[editor_id].save().then((outputData) => {
+				  console.log('Article data: ', outputData)
+				  store.data = outputData
+				}).catch((error) => {
+				  console.log('Saving failed: ', error)
+				});
+			},
+			placeholder: '...'
+		});
 	})
 </script>
 </html>
